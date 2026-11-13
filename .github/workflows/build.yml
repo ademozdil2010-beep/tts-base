@@ -24,6 +24,9 @@ jobs:
           tag=$(cat Dockerfile prepare_vosk.py | sha256sum | cut -c1-12)
           image=ghcr.io/ademozdil2010-beep/tts-base:$tag
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-          docker build --label "org.opencontainers.image.source=https://github.com/${{ github.repository }}" -t "$image" .
-          docker push "$image"
+          # BuildKit pushes the image itself. A plain "docker push" took a layer from an unrelated repository that
+          # happened to be in the runner's cache, and the registry then refused the image.
+          docker buildx create --use
+          docker buildx build --provenance=false --sbom=false --push \
+            --label "org.opencontainers.image.source=https://github.com/${{ github.repository }}" -t "$image" .
           echo "Published $image" >> "$GITHUB_STEP_SUMMARY"
