@@ -1,0 +1,29 @@
+# Builds the image and publishes it to the GitHub registry.
+name: Build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - Dockerfile
+      - prepare_vosk.py
+      - .github/workflows/build.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and publish
+        run: |
+          tag=$(cat Dockerfile prepare_vosk.py | sha256sum | cut -c1-12)
+          image=ghcr.io/ademozdil2010-beep/tts-base:$tag
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          docker build --label "org.opencontainers.image.source=https://github.com/${{ github.repository }}" -t "$image" .
+          docker push "$image"
+          echo "Published $image" >> "$GITHUB_STEP_SUMMARY"
