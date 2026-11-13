@@ -1,6 +1,6 @@
 # tts-base
 
-The base image of a speech container: ffmpeg, [Vosk TTS](https://github.com/alphacep/vosk-tts) with the Russian
+The base image of a speech container: the `opusenc` and `lame` encoders, [Vosk TTS](https://github.com/alphacep/vosk-tts) with the Russian
 model `vosk-model-tts-ru-0.9-multi` (Apache 2.0) prepared to load in about a second and take about 550 MB of
 memory, and [Piper](https://github.com/OHF-Voice/piper1-gpl) with the English voices `amy` and `ryan`.
 

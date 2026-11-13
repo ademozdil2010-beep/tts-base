@@ -1,4 +1,4 @@
-# The base image of a speech container: ffmpeg, Vosk TTS with a prepared Russian model, Piper with two English
+# The base image of a speech container: the Opus and MP3 encoders, Vosk TTS with a prepared Russian model, Piper with two English
 # voices. The application image adds its server on top (FROM this image, COPY the server, CMD).
 # Published by .github/workflows/build.yml as ghcr.io/ademozdil2010-beep/tts-base:<tag>, where the tag is a hash of
 # this file and prepare_vosk.py.
@@ -11,8 +11,9 @@ RUN python prepare_vosk.py /vosk
 
 FROM python:3.12-slim
 
+# The encoders for the two formats the server answers in. ffmpeg would do both, but it brings 450 MB of libraries.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends ffmpeg \
+ && apt-get install -y --no-install-recommends opus-tools lame \
  && rm -rf /var/lib/apt/lists/*
 
 # onnxruntime is the version the Vosk model was prepared with.
