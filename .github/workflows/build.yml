@@ -22,7 +22,8 @@ jobs:
       - name: Build and publish
         run: |
           tag=$(cat Dockerfile prepare_vosk.py | sha256sum | cut -c1-12)
-          image=ghcr.io/ademozdil2010-beep/tts-base:$tag
+          # The image goes under the owner of this repository: GITHUB_TOKEN may write only to its own owner's packages.
+          image=ghcr.io/${{ github.repository_owner }}/tts-base:$tag
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
           # BuildKit pushes the image itself. A plain "docker push" took a layer from an unrelated repository that
           # happened to be in the runner's cache, and the registry then refused the image.
