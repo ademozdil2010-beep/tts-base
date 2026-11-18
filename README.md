@@ -16,3 +16,20 @@ FROM ghcr.io/pcelobav/tts-base:<tag>
 COPY server.py .
 CMD ["python", "server.py"]
 ```
+
+## tts-base-rvc
+
+The second image in this repository is the base of the Jarvis speech container: Python 3.10 with torch for the CPU and
+[rvc-python](https://pypi.org/project/rvc-python/) (its base models `hubert` and `rmvpe` included), the Silero v5 Russian
+model that reads the text (CC BY-NC) and the RVC voice model `baranov.pth` that changes the voice. The container starts
+without the internet, and an application only adds its server:
+
+```dockerfile
+FROM ghcr.io/pcelobav/tts-base-rvc:<tag>
+COPY server.py .
+EXPOSE 8080
+CMD ["python", "server.py"]
+```
+
+`rvc/Dockerfile` is its whole description; the tag is the first 12 characters of its SHA-256
+(`cat rvc/Dockerfile | sha256sum`). A tag that is already published is never built again.

@@ -1,4 +1,4 @@
-# Builds the image and publishes it to the GitHub registry.
+# Builds the images and publishes them to the GitHub registry.
 name: Build
 
 on:
@@ -7,6 +7,7 @@ on:
     paths:
       - Dockerfile
       - prepare_vosk.py
+      - rvc/Dockerfile
       - .github/workflows/build.yml
   workflow_dispatch:
 
@@ -17,17 +18,37 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Vosk TTS and Piper (the bot's speech container). The tag hashes exactly these two files.
+          - name: tts-base
+            context: .
+            dockerfile: Dockerfile
+            files: Dockerfile prepare_vosk.py
+          # Silero with RVC and the Baranov voice (the Jarvis speech container). The tag hashes its Dockerfile.
+          - name: tts-base-rvc
+            context: rvc
+            dockerfile: rvc/Dockerfile
+            files: rvc/Dockerfile
     steps:
       - uses: actions/checkout@v4
       - name: Build and publish
         run: |
-          tag=$(cat Dockerfile prepare_vosk.py | sha256sum | cut -c1-12)
+          tag=$(cat ${{ matrix.files }} | sha256sum | cut -c1-12)
           # The image goes under the owner of this repository: GITHUB_TOKEN may write only to its own owner's packages.
-          image=ghcr.io/${{ github.repository_owner }}/tts-base:$tag
+          image=ghcr.io/${{ github.repository_owner }}/${{ matrix.name }}:$tag
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          # A tag names exactly this content and applications pin it, so a published tag is never built or pushed again.
+          if docker manifest inspect "$image" > /dev/null 2>&1; then
+            echo "$image is already published" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
           # BuildKit pushes the image itself. A plain "docker push" took a layer from an unrelated repository that
           # happened to be in the runner's cache, and the registry then refused the image.
           docker buildx create --use
           docker buildx build --provenance=false --sbom=false --push \
-            --label "org.opencontainers.image.source=https://github.com/${{ github.repository }}" -t "$image" .
+            --label "org.opencontainers.image.source=https://github.com/${{ github.repository }}" \
+            -f ${{ matrix.dockerfile }} -t "$image" ${{ matrix.context }}
           echo "Published $image" >> "$GITHUB_STEP_SUMMARY"
